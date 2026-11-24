@@ -1,0 +1,98 @@
+{
+  "date": "2026-11-25 00:01 IST",
+  "machine": "arm64 27.2.1 16 GB",
+  "model": "qwen3:4b-instruct-2507-q4_K_M",
+  "model_load_ms": 19.2,
+  "turns": 10,
+  "stt_ms": {
+    "n": 10,
+    "p50": 160.7,
+    "p95": 180.0,
+    "max": 189.9,
+    "mean": 159.3
+  },
+  "llm_ttft_ms": {
+    "n": 10,
+    "p50": 124.3,
+    "p95": 681.9,
+    "max": 1077.0,
+    "mean": 225.0
+  },
+  "llm_total_ms": {
+    "n": 10,
+    "p50": 1022.5,
+    "p95": 1828.6,
+    "max": 1988.4,
+    "mean": 1139.2
+  },
+  "tts_first_sentence_ms": {
+    "n": 9,
+    "p50": 62.8,
+    "p95": 82.0,
+    "max": 82.3,
+    "mean": 67.8
+  },
+  "pipeline": {
+    "first_audio_ms": {
+      "n": 10,
+      "p50": 1064.7,
+      "p95": 2036.8,
+      "max": 2473.4,
+      "mean": 1205.9
+    },
+    "stt_ms": {
+      "n": 10,
+      "p50": 172.2,
+      "p95": 198.2,
+      "max": 199.1,
+      "mean": 170.8
+    },
+    "llm_ttft_ms": {
+      "n": 10,
+      "p50": 203.2,
+      "p95": 904.7,
+      "max": 1443.1,
+      "mean": 311.1
+    },
+    "tts_first_ms": {
+      "n": 10,
+      "p50": 108.2,
+      "p95": 195.1,
+      "max": 237.0,
+      "mean": 120.3
+    },
+    "completion_rate": 1.0
+  },
+  "barge_in_ms": {
+    "n": 2,
+    "p50": 316.6,
+    "p95": 317.2,
+    "max": 317.3,
+    "mean": 316.6
+  },
+  "two_sessions": {
+    "first_audio_ms": {
+      "n": 8,
+      "p50": 2006.1,
+      "p95": 3562.7,
+      "max": 3961.2,
+      "mean": 2140.7
+    },
+    "completed_turns": 8,
+    "attempted_turns": 8
+  },
+  "cpu_percent_during_conversation": {
+    "n": 10,
+    "p50": 16.1,
+    "p95": 27.4,
+    "max": 30.1,
+    "mean": 18.1
+  },
+  "memory": {
+    "ollama_mb": 198.8,
+    "whisper_server_mb": 18.8,
+    "piper_mb": 173.1,
+    "benchmark_process_mb": 72.4,
+    "system_used_percent": 87.4
+  }
+}

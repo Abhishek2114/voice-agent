@@ -1,0 +1,68 @@
+# --- secrets & local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# --- local data: databases, recordings, transcripts, uploads, backups, model weights
+data/*
+!data/README.md
+!data/database/
+!data/recordings/
+!data/transcripts/
+!data/uploads/
+!data/models/
+data/database/*
+data/recordings/*
+data/transcripts/*
+data/uploads/*
+data/models/*
+!data/*/.gitkeep
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.onnx
+*.gguf
+*.bin
+*.wav
+*.vabackup
+*.tar.gz.enc
+
+# --- runtime
+.run/
+logs/
+*.log
+*.pid
+
+# --- python
+.venv/
+.tools/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+dist/
+build/
+
+# --- node / next
+node_modules/
+.next*/
+apps/dashboard/AGENTS.md
+out/
+*.tsbuildinfo
+next-env.d.ts
+playwright-report/
+test-results/
+coverage/
+
+# --- OS / editors
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json

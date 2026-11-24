@@ -1,0 +1,384 @@
+{
+  "format": "voice-agent.workspace",
+  "version": 1,
+  "workspace": {
+    "name": "ShrotiHost (sample)",
+    "description": "Demonstration workspace for a web hosting business. Replace all example content before real use.",
+    "brand_color": "#4a69c4",
+    "contact_email": "support@example.com",
+    "contact_phone": null,
+    "website": "https://example.com",
+    "address": null,
+    "timezone": "Asia/Kolkata",
+    "default_country": "IN"
+  },
+  "compliance": {
+    "calling_window_start": "10:00",
+    "calling_window_end": "19:00",
+    "calling_days": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ]
+  },
+  "agents": [
+    {
+      "name": "Shruti",
+      "description": "Inbound support and sales assistant. Captures leads from callers and website visitors.",
+      "personality": "Friendly, patient and clear. Uses simple English, avoids jargon unless the caller is technical.",
+      "system_instructions": "You answer calls and website conversations for ShrotiHost, a web hosting company.\n- Find out what the person needs: a new website, moving an existing site, email hosting, a VPS, or help with an existing account.\n- Explain plans and services using only the business information you have. If a detail (especially a price) is not in your information, say a specialist will confirm it.\n- If the person is interested, collect their name, phone number (read it back), and what they need, ask whether the team may contact them, and save it with the capture_lead tool.\n- For problems with an existing account, collect their name and contact details and record a callback request; you cannot access accounts.\n- Never ask for passwords, card numbers or OTPs.",
+      "greeting": "Hi, I'm Shruti, the AI assistant for ShrotiHost. Are you looking for hosting for a new website, or do you need help with something else?",
+      "objectives": [
+        "Understand what the caller needs",
+        "Answer questions from the knowledge base",
+        "Capture interested callers as leads with their consent"
+      ],
+      "business_knowledge": "ShrotiHost provides shared web hosting, WordPress hosting, business email, managed VPS servers and free website migration. Support is available by ticket and email. Exact prices and current offers must be confirmed by the sales team unless they appear in the knowledge base.",
+      "language": "en-IN",
+      "llm": {
+        "provider": "ollama",
+        "temperature": 0.5,
+        "max_tokens": 180
+      },
+      "stt": {
+        "language": "en"
+      },
+      "tts": {
+        "provider": "piper",
+        "voice": "en_GB-alba-medium",
+        "speaker": null,
+        "speed": 1.0
+      },
+      "max_duration_seconds": 600,
+      "silence_timeout_seconds": 20,
+      "end_rules": {
+        "end_phrases": [
+          "goodbye",
+          "bye",
+          "that's all",
+          "thank you bye"
+        ],
+        "max_turns": 40
+      },
+      "fallback_responses": {},
+      "use_knowledge_base": true,
+      "tools": [
+        "end_call",
+        "request_callback",
+        "request_appointment",
+        "record_opt_out",
+        "search_knowledge",
+        "record_interest",
+        "capture_lead"
+      ]
+    },
+    {
+      "name": "Aarav",
+      "description": "Outbound follow-up caller for interested contacts (simulation campaigns by default).",
+      "personality": "Polite, brief and respectful of the person's time. Never pushy.",
+      "system_instructions": "You are following up with people who previously showed interest in ShrotiHost.\n- Introduce yourself, remind them why you are calling, and ask if now is a good time. If not, offer a callback.\n- Briefly mention the current offer described in the campaign objective, without inventing prices or terms.\n- If they are interested, confirm their details and save the lead; if they are not interested, thank them and end politely.\n- If they ask not to be called again, record the opt-out immediately.",
+      "greeting": "Hello, this is Aarav, an AI assistant calling from ShrotiHost. Is this a good time for a quick minute?",
+      "objectives": [
+        "Confirm continued interest",
+        "Offer a callback from the sales team",
+        "Respect opt-outs immediately"
+      ],
+      "business_knowledge": "ShrotiHost provides shared hosting, WordPress hosting, business email and managed VPS servers.",
+      "language": "en-IN",
+      "llm": {
+        "provider": "ollama",
+        "temperature": 0.5,
+        "max_tokens": 150
+      },
+      "stt": {
+        "language": "en"
+      },
+      "tts": {
+        "provider": "piper",
+        "voice": "en_GB-alba-medium",
+        "speaker": null,
+        "speed": 1.05
+      },
+      "max_duration_seconds": 300,
+      "silence_timeout_seconds": 15,
+      "end_rules": {
+        "end_phrases": [
+          "goodbye",
+          "bye",
+          "not interested"
+        ],
+        "max_turns": 20
+      },
+      "fallback_responses": {},
+      "use_knowledge_base": true,
+      "tools": [
+        "end_call",
+        "request_callback",
+        "record_opt_out",
+        "search_knowledge",
+        "record_interest",
+        "capture_lead"
+      ]
+    }
+  ],
+  "knowledge": [
+    {
+      "title": "Frequently asked questions",
+      "kind": "faq",
+      "faq": [
+        {
+          "question": "What kinds of hosting do you offer?",
+          "answer": "Shared web hosting, WordPress hosting, business email hosting and managed VPS servers."
+        },
+        {
+          "question": "Can you move my existing website to ShrotiHost?",
+          "answer": "Yes. Website migration is offered free of charge for supported sites; the team checks the site first and confirms the timeline."
+        },
+        {
+          "question": "Do you provide SSL certificates?",
+          "answer": "Free SSL certificates are included with hosted websites."
+        },
+        {
+          "question": "How do I get support?",
+          "answer": "Open a ticket from the client area or email support. Urgent issues are prioritised."
+        },
+        {
+          "question": "Do you take backups?",
+          "answer": "Regular automatic backups are included; the support team can help restore them. Customers should also keep their own copies of important data."
+        },
+        {
+          "question": "Can I upgrade my plan later?",
+          "answer": "Yes, plans can be upgraded as a site grows. The sales team confirms any price difference."
+        }
+      ]
+    },
+    {
+      "title": "Plans overview",
+      "kind": "product",
+      "content": "Shared hosting: for small business sites and blogs, includes SSL and email accounts.\n\nWordPress hosting: tuned for WordPress with one-click installs and automatic updates.\n\nBusiness email: professional email on your own domain.\n\nManaged VPS: dedicated resources for growing sites and applications; the team manages the server software.\n\nExact resource limits for each plan are confirmed by the sales team."
+    },
+    {
+      "title": "Pricing (placeholder - replace before real use)",
+      "kind": "pricing",
+      "content": "EXAMPLE CONTENT. This sample does not contain real prices.\n\nTell callers that current prices and offers depend on the plan and billing period, and that a sales team member will confirm the exact price for their needs. Do not state any amount.\n\nReplace this document with your actual, current price list before using voice-agent with real customers."
+    },
+    {
+      "title": "Support policy",
+      "kind": "policy",
+      "content": "Support is provided through tickets and email. Account-specific actions (password resets, billing changes, cancellations) can only be done by the support team after verifying the account holder. The AI assistant records a callback request and never asks for passwords or payment details."
+    },
+    {
+      "title": "Refund policy (example)",
+      "kind": "policy",
+      "content": "EXAMPLE CONTENT. Refund eligibility depends on the product and the terms accepted at purchase. The AI assistant cannot process refunds; it records the request so the billing team can review it."
+    },
+    {
+      "title": "Website migration service",
+      "kind": "service",
+      "content": "The migration team copies files, databases and email to ShrotiHost, tests the site, and helps update DNS. Most sites move without downtime. The team confirms feasibility and timing after reviewing the current host."
+    }
+  ],
+  "contacts": [
+    {
+      "ref": "c0",
+      "first_name": "Priya",
+      "last_name": "Sharma",
+      "phone": "+919999900001",
+      "email": "priya.sharma@example.com",
+      "company": "Sharma Boutique",
+      "tags": [
+        "sample",
+        "festive-offer"
+      ],
+      "notes": "Runs an online clothing store; asked about faster hosting last year.",
+      "status": "interested",
+      "dnd_status": "not_registered",
+      "is_fictional": true,
+      "consents": [
+        {
+          "purpose": "service",
+          "source": "other",
+          "evidence": "Fictional sample data for demonstration only - not real consent.",
+          "obtained_at": "2026-10-01T10:00:00+05:30"
+        }
+      ]
+    },
+    {
+      "ref": "c1",
+      "first_name": "Rahul",
+      "last_name": "Verma",
+      "phone": "+919999900002",
+      "email": "rahul.v@example.com",
+      "company": "Verma Tutorials",
+      "tags": [
+        "sample",
+        "festive-offer"
+      ],
+      "notes": "Education website, WordPress.",
+      "status": "interested",
+      "dnd_status": "not_registered",
+      "is_fictional": true,
+      "consents": [
+        {
+          "purpose": "service",
+          "source": "other",
+          "evidence": "Fictional sample data for demonstration only - not real consent.",
+          "obtained_at": "2026-10-01T10:00:00+05:30"
+        }
+      ]
+    },
+    {
+      "ref": "c2",
+      "first_name": "Anita",
+      "last_name": "Iyer",
+      "phone": "+919999900003",
+      "email": "anita.iyer@example.com",
+      "company": "Iyer & Co. Chartered Accountants",
+      "tags": [
+        "sample",
+        "festive-offer"
+      ],
+      "notes": "Needs business email.",
+      "status": "interested",
+      "dnd_status": "not_registered",
+      "is_fictional": true,
+      "consents": [
+        {
+          "purpose": "service",
+          "source": "other",
+          "evidence": "Fictional sample data for demonstration only - not real consent.",
+          "obtained_at": "2026-10-01T10:00:00+05:30"
+        }
+      ]
+    },
+    {
+      "ref": "c3",
+      "first_name": "Karan",
+      "last_name": "Mehta",
+      "phone": "+919999900004",
+      "email": "karan@example.com",
+      "company": "Mehta Electronics",
+      "tags": [
+        "sample",
+        "festive-offer"
+      ],
+      "notes": "Interested in VPS.",
+      "status": "interested",
+      "dnd_status": "not_registered",
+      "is_fictional": true,
+      "consents": [
+        {
+          "purpose": "service",
+          "source": "other",
+          "evidence": "Fictional sample data for demonstration only - not real consent.",
+          "obtained_at": "2026-10-01T10:00:00+05:30"
+        }
+      ]
+    },
+    {
+      "ref": "c4",
+      "first_name": "Sneha",
+      "last_name": "Kulkarni",
+      "phone": "+919999900005",
+      "email": "sneha.k@example.com",
+      "company": null,
+      "tags": [
+        "sample"
+      ],
+      "notes": "Personal blog.",
+      "status": "new",
+      "dnd_status": "not_registered",
+      "is_fictional": true,
+      "consents": []
+    },
+    {
+      "ref": "c5",
+      "first_name": "Vikram",
+      "last_name": "Singh",
+      "phone": "+919999900006",
+      "email": null,
+      "company": "Singh Logistics",
+      "tags": [
+        "sample"
+      ],
+      "notes": "",
+      "status": "new",
+      "dnd_status": "not_registered",
+      "is_fictional": true,
+      "consents": []
+    },
+    {
+      "ref": "c6",
+      "first_name": "Meera",
+      "last_name": "Nair",
+      "phone": "+919999900007",
+      "email": "meera.nair@example.com",
+      "company": "Nair Ayurveda Clinic",
+      "tags": [
+        "sample"
+      ],
+      "notes": "Asked for a callback about domain transfer.",
+      "status": "new",
+      "dnd_status": "not_registered",
+      "is_fictional": true,
+      "consents": []
+    },
+    {
+      "ref": "c7",
+      "first_name": "Arjun",
+      "last_name": "Reddy",
+      "phone": "+919999900008",
+      "email": "arjun.r@example.com",
+      "company": "Reddy Real Estate",
+      "tags": [
+        "sample"
+      ],
+      "notes": "",
+      "status": "new",
+      "dnd_status": "not_registered",
+      "is_fictional": true,
+      "consents": []
+    }
+  ],
+  "suppression": [],
+  "campaigns": [
+    {
+      "name": "Festive offer follow-up (simulation)",
+      "agent": "Aarav",
+      "description": "Follow up with contacts who showed interest earlier.",
+      "objective": "Let them know a festive offer is running and offer a callback from the sales team to confirm details. Do not quote prices.",
+      "purpose": "service",
+      "window_start": "10:00",
+      "window_end": "19:00",
+      "calling_days": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "max_attempts": 2,
+      "retry_delay_minutes": 60,
+      "max_concurrent_calls": 1,
+      "simulation": {
+        "answer_rate": 0.8,
+        "busy_rate": 0.05,
+        "fail_rate": 0.0,
+        "callee_mode": "scripted",
+        "persona_weights": {
+          "interested": 3,
+          "callback": 2,
+          "questions": 2,
+          "not_interested": 2,
+          "opt_out": 1
+        },
+        "ignore_calling_window": false
+      },
+      "contact_tag": "festive-offer"
+    }
+  ]
+}

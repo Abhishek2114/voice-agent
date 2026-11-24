@@ -1,0 +1,76 @@
+[project]
+name = "voice-agent-backend"
+version = "0.1.0"
+description = "Local-first AI voice-agent platform — backend API, scheduler and conversation engine host"
+readme = "../README.md"
+license = "MIT"
+requires-python = ">=3.11,<3.14"
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+  "pydantic[email]>=2.8",
+  "pydantic-settings>=2.4",
+  "sqlalchemy[asyncio]>=2.0.30",
+  "aiosqlite>=0.20",
+  "alembic>=1.13",
+  "argon2-cffi>=23.1",
+  "httpx>=0.27",
+  "python-multipart>=0.0.9",
+  "phonenumbers>=8.13",
+  "numpy>=1.26",
+  "onnxruntime>=1.18",
+  "aiortc>=1.9",
+  "av>=12",
+  "pypdf>=4.3",
+  "websockets>=12",
+  "cryptography>=42",
+  "psutil>=5.9",
+]
+
+[dependency-groups]
+dev = [
+  "pytest>=8",
+  "pytest-asyncio>=0.24",
+  "pytest-cov>=5",
+  "respx>=0.21",
+  "ruff>=0.6",
+  "mypy>=1.11",
+  "bandit>=1.7",
+  "pip-audit>=2.7",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+extend-exclude = ["app/database/migrations/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "ASYNC", "SIM", "RUF"]
+ignore = ["E501", "ASYNC109", "S101", "B008", "RUF012", "S311", "SIM105", "RUF001", "RUF002", "RUF003", "UP046", "UP047"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S", "B", "ASYNC"]
+"../tests/**" = ["S", "B", "ASYNC"]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+warn_unused_ignores = true
+check_untyped_defs = true
+no_implicit_optional = true
+mypy_path = ".."
+explicit_package_bases = true
+exclude = ["app/database/migrations/"]
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv"]

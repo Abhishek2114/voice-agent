@@ -1,0 +1,138 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NEXT_TELEMETRY_DISABLED: "1"
+  PYTHONDONTWRITEBYTECODE: "1"
+
+jobs:
+  backend:
+    name: Backend (lint, types, migrations, tests)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv and Python 3.12
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: uv sync --locked
+
+      - name: Put the repository root on the venv's import path
+        run: echo "$GITHUB_WORKSPACE" > "$(backend/.venv/bin/python -c 'import site;print(site.getsitepackages()[0])')/voice_agent_root.pth"
+
+      - name: Ruff
+        run: backend/.venv/bin/ruff check backend/app engine tests backend/tests
+
+      - name: Mypy
+        working-directory: backend
+        run: .venv/bin/mypy app ../engine
+
+      - name: Alembic migrations match the models
+        working-directory: backend
+        run: |
+          export VA_DATA_DIR="$RUNNER_TEMP/alembic-data"
+          export PYTHONPATH="$GITHUB_WORKSPACE/backend:$GITHUB_WORKSPACE"
+          mkdir -p "$VA_DATA_DIR/database"
+          .venv/bin/alembic upgrade head
+          .venv/bin/alembic check
+
+      # Real-model tests (Ollama / whisper.cpp / Piper) and macOS `say` tests skip themselves here.
+      - name: Pytest
+        run: backend/.venv/bin/python -m pytest backend/tests tests -ra
+
+  frontend:
+    name: Dashboard (lint, types, unit tests, build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/dashboard
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/dashboard/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: ESLint
+        run: npx eslint src
+
+      - name: TypeScript
+        run: npx tsc --noEmit
+
+      - name: Vitest
+        run: npx vitest run
+
+      - name: Next.js build
+        run: npx next build
+
+  security:
+    name: Security scans
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read # gitleaks-action lists the commits of a pull request
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install uv and Python 3.12
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: uv sync --locked
+
+      - name: Bandit (medium and high severity)
+        run: backend/.venv/bin/bandit -c backend/pyproject.toml -r backend/app engine -q -ll
+
+      - name: pip-audit (locked dependencies)
+        working-directory: backend
+        run: |
+          uv export --locked --format requirements-txt --no-hashes --no-emit-project --quiet > "$RUNNER_TEMP/requirements.txt"
+          .venv/bin/pip-audit -r "$RUNNER_TEMP/requirements.txt" --no-deps --disable-pip --progress-spinner off
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: npm audit (production dependencies)
+        working-directory: apps/dashboard
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Required only for repositories owned by a GitHub organization.
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
