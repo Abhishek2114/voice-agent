@@ -1,183 +1,179 @@
 # voice-agent
 
-Build, test and run AI voice agents on your own Mac. Speech recognition, the language model and the voice all
-run locally: no cloud AI service, no subscription, no data leaving the machine.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-voice-agent gives a small business (or several businesses) a dashboard to create phone-style AI agents, talk to them
-through the browser, let customers talk to them, capture leads from those conversations, and run outbound
-campaigns. Campaigns run as simulations until real telephony is deliberately set up.
+Build, test, and run local AI voice agents on Apple Silicon. Voice-agent combines real-time speech recognition, a local language model, speech synthesis, browser calling, lead capture, campaigns, and a multi-workspace dashboard in a self-hosted application.
+
+> **Privacy-first:** the default setup keeps voice, transcripts, recordings, and configuration on your machine. Remote provider access is disabled unless you explicitly enable it.
 
 ![Overview](docs/screenshots/overview-light.png)
 
-## What it does
+## Features
 
-- **Live voice conversations in the browser** over WebRTC: microphone in, agent voice out, live transcript,
-  mute, interrupt-by-talking (barge-in) and a manual interrupt.
-- **Local AI end to end.** Silero VAD for turn detection, whisper.cpp (Metal) for speech-to-text, any local
-  Ollama model for the conversation, and Piper (or macOS voices) for speech. Cloud-proxied Ollama models are
-  detected and refused; there is no silent cloud fallback.
-- **Agent builder** with instructions, objectives, business knowledge, voice, model, call rules, version history,
-  a text test chat and simulated calls.
-- **Every conversation can become a lead.** Agents collect name, number and need, read the number back, ask
-  permission to follow up, and save a deduplicated contact with the consent evidence linked to the call.
-- **Customer links** (off by default): a "talk to us" page per agent that customers open in their browser.
-- **Multiple businesses** in one installation, with strict workspace isolation enforced in the backend and
-  owner/admin/editor/viewer roles.
-- **Contacts and CSV import** with phone normalisation, duplicate detection, a mapping wizard, CSV-injection
-  protection, and consent recorded only when the file carries real evidence.
-- **Campaigns** with calling windows, retries, attempt limits and concurrency, all on a persistent SQLite job
-  queue that survives restarts without duplicating calls.
-- **Compliance controls for India**: consent records, a do-not-call list, opt-outs during calls, DND scrub
-  imports, calling hours, frequency caps, AI and recording disclosures, retention, erasure and an audit log.
-  Checks fail closed. (This is tooling, not legal advice; see [docs/COMPLIANCE.md](docs/COMPLIANCE.md).)
-- **Knowledge base** per workspace (FAQs, policies, pricing, PDFs) with local full-text retrieval.
-- **Transcripts, summaries and outcomes** for every call, generated locally. Plus analytics computed from your
-  records, callback requests, recordings (opt-in, audited) and backup/restore.
-- **Telephony**: a simulator for inbound and outbound calls, and an Asterisk ARI adapter for real SIP/PSTN calls
-  (integration-ready, disabled by default, not yet verified on a live carrier).
+- **Live browser conversations:** bidirectional WebRTC audio with microphone input, agent speech output, live transcripts, mute controls, interruption/barge-in, and manual interruption.
+- **Local AI by default:** Silero VAD for turn detection, whisper.cpp for speech-to-text, Ollama for conversation, and Piper for speech synthesis. Cloud-proxied Ollama models are detected and disabled rather than silently used as a fallback.
+- **Agent builder:** configure instructions, objectives, business knowledge, voice, model, call rules, version history, text testing, and simulated calls.
+- **Lead capture:** collect a caller's name, number, and need, read the number back, and request follow-up consent. Capture evidence and save deduplicated contacts with consent metadata.
+- **Customer links:** create an optional "talk to us" page for each agent and share it with customers.
+- **Multiple workspaces:** isolate agents, contacts, knowledge, campaigns, calls, recordings, analytics, and policies by workspace.
+- **Campaign management:** schedule calls, configure retries and attempt limits, control concurrency, and run a persistent SQLite job queue.
+- **India-oriented compliance:** support for consent records, a do-not-call list, opt-outs, DND scrubs, calling hours, frequency caps, AI disclosure, recording retention, erasure, and audit logs.
+- **Knowledge base:** attach FAQs, policies, pricing, PDFs, and other context to each workspace and retrieve relevant information locally.
+- **Call history:** review transcripts, summaries, outcomes, response timing, and analytics.
+- **Optional telephony:** simulate inbound and outbound calls or connect an Asterisk ARI adapter for real SIP/PSTN traffic.
 
 | Voice playground | Agent builder |
-|---|---|
+| --- | --- |
 | ![Playground](docs/screenshots/playground-dark.png) | ![Agent](docs/screenshots/agent-light.png) |
-| **Call detail** | **Analytics** |
+| **Call details** | **Analytics** |
 | ![Call](docs/screenshots/call-light.png) | ![Analytics](docs/screenshots/analytics-dark.png) |
 
 ## How it works
 
 ```text
- Browser (Next.js dashboard)                         This Mac, all bound to 127.0.0.1
- ┌──────────────────────────┐   WebRTC (Opus)   ┌──────────────────────────────────────────────┐
- │ mic ─┐        ┌─ speaker │◄────────────────► │ aiortc transport                             │
- │      │        │          │  data channel     │   │ 16 kHz PCM            ▲ 48 kHz PCM       │
- │ transcript, state, ctrl  │◄────────────────► │   ▼                       │                  │
- └──────────────────────────┘                   │ Silero VAD → turn end     │ audio queue      │
-             │ HTTPS/HTTP /api (cookie + CSRF)  │   ▼                       │                  │
-             ▼                                  │ whisper.cpp ─► session ─► Piper TTS          │
- ┌──────────────────────────┐                   │ (whisper-server)  │  ▲   (per sentence)      │
- │ FastAPI backend          │──────────────────►│                   ▼  │                       │
- │ auth · workspaces · CRM  │                   │            Ollama (local model)              │
- │ campaigns · compliance   │                   │            + tools + knowledge (FTS5)        │
- │ SQLite (WAL) + files     │◄─ scheduler ─────►│ simulator / Asterisk ARI (optional)          │
- └──────────────────────────┘                   └──────────────────────────────────────────────┘
+Browser (Next.js dashboard)
+  ├── WebRTC microphone and speaker
+  ├── Live transcript and call controls
+  └── HTTPS/HTTP API (session cookies + CSRF)
+              │
+              ▼
+FastAPI backend
+  ├── authentication and workspaces
+  ├── agents, CRM, campaigns, and compliance
+  ├── SQLite (WAL) with encrypted/structured storage
+  └── scheduler and optional telephony adapter
+              │
+              ▼
+Conversation engine
+  ├── Silero VAD  → turn detection
+  ├── whisper.cpp → speech-to-text
+  ├── Ollama      → local language model
+  └── Piper       → speech synthesis
 ```
 
-The conversation engine (`engine/`) does not know about transports. The same pipeline serves browser calls,
-simulated calls and SIP calls. The LLM streams token by token. Speech is synthesised one sentence at a time and
-playback starts as soon as the first sentence is ready (it is not sub-sentence streaming). Details are in
-[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
-
-Measured on an M1 Pro / 16 GB with `qwen3:4b-instruct-2507` ([docs/BENCHMARKS.md](docs/BENCHMARKS.md)): once the
-caller's end-of-turn pause is detected, the agent starts speaking after **1.06 s at the median and 2.04 s at p95**.
-Speech-to-text takes about 0.17 s, the warm model's first token about 0.2 s, and the first sentence's synthesis
-about 0.1 s.
+The conversation engine is transport-independent. The same pipeline serves browser calls, simulated calls, and optional SIP calls. The LLM streams tokens incrementally while speech is synthesized sentence by sentence, with playback beginning as soon as the first sentence is ready.
 
 ## Technology
 
 | Area | Stack |
-|---|---|
-| Dashboard | Next.js 16, React 19, TypeScript, Tailwind CSS 4, shadcn/ui (Base UI), TanStack Query, React Hook Form, Zod, Recharts, Lucide |
-| Backend | Python 3.12, FastAPI, Pydantic 2, SQLAlchemy 2 (async), Alembic, SQLite (WAL, FTS5) |
-| Voice | aiortc (WebRTC), PyAV, Silero VAD (onnxruntime), whisper.cpp, Piper, FFmpeg |
-| AI | Ollama with any local model; the default is Qwen3 4B Instruct |
-| Telephony | Built-in simulator; Asterisk ARI + RTP adapter |
+| --- | --- |
+| Dashboard | Next.js 16, React 19, TypeScript, Tailwind CSS 4, shadcn/ui, TanStack Query, Recharts |
+| Backend | Python 3.12, FastAPI, Pydantic 2, SQLAlchemy 2 (async), Alembic, SQLite (WAL), uv |
+| Voice | WebRTC, PyAV, Silero VAD, whisper.cpp, Piper TTS, FFmpeg |
+| AI | Ollama with a local model; any Ollama-compatible model installed locally |
+| Telephony | Built-in call simulator; optional Asterisk ARI adapter |
 
 ## Requirements
 
-- An Apple Silicon Mac (M1 or newer). 16 GB memory recommended. Intel Macs work without Metal acceleration.
-- macOS with [Homebrew](https://brew.sh), Node.js 20+, [uv](https://docs.astral.sh/uv/)
-- [Ollama](https://ollama.com/download) installed and at least one local model (`ollama list`). voice-agent never
-  installs Ollama or downloads models for you.
-- About 1 GB of free disk for dependencies and speech models.
+- Apple Silicon Mac (M1 or newer). Intel Macs may work, but whisper.cpp Metal acceleration is unavailable.
+- macOS with [Homebrew](https://brew.sh/), Node.js 20+, and [uv](https://docs.astral.sh/uv/).
+- [Ollama](https://ollama.com/download) installed and at least one local model. Voice-agent does not install Ollama or download an LLM for you.
+- At least 16 GB of RAM is recommended, with room for speech models and a local language model.
 
-## Install and run
+## Quick start
 
-```bash
-git clone <your fork url> voice-agent && cd voice-agent
-./scripts/setup-mac.sh --models   # installs only what's missing; asks before downloading ~140 MB of speech models
-./scripts/start.sh                # Ollama (if not running), whisper-server, Piper, API, scheduler, dashboard
-./scripts/health-check.sh         # verifies every component
-```
-
-Open **http://localhost:3000**. The first visit asks you to create the administrator account and your first
-business workspace.
+From the repository root:
 
 ```bash
-./scripts/stop.sh                 # stops only the processes voice-agent started
+git clone https://github.com/Abhishek2114/voice-agent.git
+cd voice-agent
+
+./scripts/setup-mac.sh --models
+./scripts/start.sh
 ```
 
-`make setup`, `make dev`, `make stop`, `make health`, `make test`, `make lint`, `make typecheck` and `make backup`
-wrap the same scripts. See [docs/INSTALLATION.md](docs/INSTALLATION.md) for details and `.env.example` for every setting.
+`setup-mac.sh --models` installs missing system dependencies and can download approximately 125 MB of speech models. `start.sh` launches Ollama when needed, starts the backend and frontend, and initializes the local database.
 
-### Ollama and models
+Open **http://localhost:3000**. On your first visit, create the administrator account and your first workspace.
 
-Ollama should listen on `127.0.0.1:11434` (the start script launches it that way if it isn't running). Pick the
-model under **Settings → AI models**, where each model is listed with its size and whether it is local. Models that
-Ollama proxies to a cloud host (for example `*:cloud` tags) are shown as remote and cannot be selected. On a
-16 GB Mac, models up to about 4–8 B parameters at 4-bit quantisation leave room for speech recognition and synthesis.
+Useful Make targets:
 
-### Try your first conversation
+```bash
+make setup          # install dependencies and initialize the database
+make setup-models   # setup plus optional local speech-model download
+make dev            # start all services with hot reload
+make start          # start the services
+make stop           # stop services started by voice-agent
+make health         # verify that services are available
+make test           # run backend and frontend tests
+make lint           # run backend and frontend lint checks
+make typecheck      # run Python and TypeScript type checks
+make backup         # create a data backup
+```
 
-1. **Agents → New agent**: give it a name, a greeting and some business knowledge, then save.
-2. **Voice playground**: choose the agent and press **Start conversation**. Allow the microphone. Headphones avoid
-   echo.
-3. Open the call record afterwards for the transcript, summary, outcome and response times.
+See [Installation](docs/INSTALLATION.md) and [.env.example](.env.example) for complete setup and configuration options.
 
-### Sample workspace
+## Ollama and models
 
-`demo/shrotihost/workspace.json` is an optional sample web-hosting business with two agents, a knowledge base,
-fictional contacts and a draft simulation campaign. Import it from **Settings → New workspace → Import a workspace**.
-It contains no real prices and no real people. See [demo/shrotihost/README.md](demo/shrotihost/README.md).
+Ollama should listen on `127.0.0.1:11434`. The start script starts Ollama when it is installed but not running.
 
-### Workspaces
+Choose a model under **Settings → AI models**. Each model shows its size and whether it is local. Models exposed through a cloud proxy (for example, `*:cloud`) are identified as remote and cannot be selected. On a 16 GB Mac, models around 4–8B parameters are a practical starting point.
 
-Each business is a workspace with its own agents, contacts, knowledge, campaigns, calls, recordings, analytics
-and compliance policy. Switch workspaces from the top of the sidebar. Members get roles per workspace. The backend
-checks membership on every request, and resources from another workspace answer "not found".
+```bash
+ollama pull qwen3:4b-instruct-2507-q4_K_M
+ollama serve
+```
 
-### Real phone calls (optional)
+Speech models are stored locally under `data/models`.
 
-Real calling is disabled until you set `VA_REAL_TELEPHONY_ENABLED=true`, connect your own Asterisk server and SIP
-trunk under **Settings → Telephony**, and record the workspace's prerequisites under **Compliance** (authorisation,
-telemarketer registration, number series, A2P declaration to your provider). Calls to Indian numbers may incur
-charges and are regulated by TRAI. Read [docs/TELEPHONY.md](docs/TELEPHONY.md) and [docs/COMPLIANCE.md](docs/COMPLIANCE.md)
-first.
+## Try a conversation
+
+1. Open **Agents → New agent** and configure a name, greeting, instructions, and business knowledge.
+2. Open **Voice playground**, select the agent, and choose **Start conversation**.
+3. Allow microphone access. Use headphones to reduce echo.
+4. Open the call record afterward to review the transcript, summary, outcome, and response timings.
+
+## Sample workspace
+
+`demo/shrotihost/workspace.json` contains an optional fictional web-hosting workspace with two agents, a knowledge base, sample contacts, and a draft campaign. It contains no real prices or people.
+
+Import it from **Settings → New workspace → Import workspace**. See [demo/shrotihost/README.md](demo/shrotihost/README.md) for details.
+
+## Workspaces
+
+Each workspace has its own agents, contacts, knowledge, campaigns, calls, recordings, analytics, and compliance policy. Workspace membership controls available actions.
+
+The backend validates every workspace-scoped request. Resources from another workspace are not returned or modified.
+
+## Optional real phone calls
+
+Real calling is disabled until `VA_REAL_TELEPHONY_ENABLED=true`. When enabled, connect an Asterisk server and SIP trunk under **Settings → Telephony**, then record the workspace prerequisites under **Compliance**.
+
+Calls to Indian numbers may incur charges and are regulated by TRAI. Read [Telephony](docs/TELEPHONY.md) and [Compliance](docs/COMPLIANCE.md) before enabling real telephony.
 
 ## Testing
 
 ```bash
-make test        # backend + engine + security tests (pytest) and dashboard tests (vitest)
-make test-real   # real-model tests: whisper.cpp + Piper + Ollama (needs ./scripts/start.sh)
-make test-e2e    # Playwright in Chrome against an isolated instance, including a live voice conversation
+make test             # backend + frontend tests
+make test-real        # tests that require local Ollama, whisper.cpp, and Piper
+make test-e2e         # Playwright tests against an isolated instance
 ```
 
-Results and exact commands are in [docs/TESTING.md](docs/TESTING.md).
+Detailed commands and test behavior are documented in [Testing](docs/TESTING.md).
 
 ## Security and privacy
 
-Everything binds to localhost. Passwords use Argon2id. Sessions use HttpOnly cookies with CSRF tokens.
-Provider URLs are SSRF-checked, uploads are content-sniffed, CSV exports are formula-escaped and logs are
-redacted. Provider credentials are encrypted at rest. The LLM can only request a fixed set of validated actions;
-it cannot run commands or fetch URLs. See [docs/SECURITY.md](docs/SECURITY.md). No independent penetration test
-has been performed.
+Everything binds to localhost by default. Passwords use Argon2id. Sessions use HTTP-only cookies and CSRF protection. Provider URLs are SSRF-checked, uploads are content-sniffed, CSV exports are formula-escaped, and logs are redacted.
+
+Provider credentials are encrypted at rest. The LLM can only request a fixed set of validated actions; it cannot execute commands or fetch arbitrary URLs.
+
+For architectural details, see [Security](docs/SECURITY.md). This project has not undergone an independent penetration test.
 
 ## Licensing
 
-voice-agent is MIT licensed ([LICENSE](LICENSE)). Piper TTS is GPL-3.0. It is installed into its own environment
-and runs as a separate process that voice-agent talks to over HTTP. Model weights are not included in this
-repository; review each model's licence in [docs/MODEL-LICENSING.md](docs/MODEL-LICENSING.md).
+voice-agent is MIT licensed ([LICENSE](LICENSE)). Piper TTS is GPL-3.0 and runs as a separate process. Review model licenses in [Model licensing](docs/MODEL-LICENSING.md); model weights are not included in this repository.
 
 ## Troubleshooting
 
-See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md). The usual suspects: Ollama not running, a model name that
-isn't installed, microphone permission, and the first reply after a cold model load taking a few seconds.
+See [Troubleshooting](docs/TROUBLESHOOTING.md). Common issues include Ollama not running, a missing model, microphone permission problems, and slow startup while the local models load.
 
 ## Roadmap
 
-- Streaming speech recognition (partial transcripts) and sub-sentence TTS streaming
-- Multilingual speech models (Hindi and other Indian languages) with matching Piper voices
-- Verified Asterisk/SIP integration with a real carrier; additional provider adapters
-- Embedding-based retrieval as an option alongside full-text search
-- Calendar integrations for confirmed appointments (with human approval)
+- Streaming speech recognition with partial transcripts and sub-sentence TTS streaming
+- Multilingual speech models for Hindi and other Indian languages
+- Verified Asterisk/SIP integration with a real carrier
+- Embedding-based retrieval alongside full-text search
+- Calendar integrations for confirmed appointments
 
 ## Contributing
 
