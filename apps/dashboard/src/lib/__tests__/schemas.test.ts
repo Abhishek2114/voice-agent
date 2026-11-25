@@ -117,6 +117,7 @@ describe("agentSchema", () => {
     const bad = issues(agentSchema.safeParse({ ...baseAgent, language: "english", name: "  " }));
     expect(bad.language).toBe("Use a code like en or en-IN");
     expect(bad.name).toBe("Give the agent a name");
+    expect(agentSchema.safeParse({ ...baseAgent, language: "auto" }).success).toBe(true);
     expect(agentSchema.safeParse({ ...baseAgent, tools: ["rm_rf"] }).success).toBe(false);
   });
 });

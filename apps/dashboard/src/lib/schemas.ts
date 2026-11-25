@@ -37,7 +37,7 @@ export const agentSchema = z.object({
   greeting: z.string().max(1000),
   objectives: z.array(z.string().max(300)).max(20),
   business_knowledge: z.string().max(20_000),
-  language: z.string().regex(/^[a-z]{2}(-[A-Z]{2})?$/, "Use a code like en or en-IN"),
+  language: z.string().regex(/^([a-z]{2}(-[A-Z]{2})?|auto)$/, "Use a code like en or en-IN"),
   llm: z.object({
     provider: z.literal("ollama"),
     model: z.string().min(1, "Choose a model"),

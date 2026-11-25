@@ -67,7 +67,7 @@ class AgentIn(BaseModel):
     greeting: str = Field(default="", max_length=1000)
     objectives: list[str] = Field(default_factory=list, max_length=20)
     business_knowledge: str = Field(default="", max_length=20_000)
-    language: str = Field(default="en", pattern=r"^[a-z]{2}(-[A-Z]{2})?$")
+    language: str = Field(default="en", pattern=r"^([a-z]{2}(-[A-Z]{2})?|auto)$")
     llm: LLMCfg = Field(default_factory=LLMCfg)
     stt: STTCfg = Field(default_factory=STTCfg)
     tts: TTSCfg = Field(default_factory=TTSCfg)

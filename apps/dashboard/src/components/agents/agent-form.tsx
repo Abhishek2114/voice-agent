@@ -103,6 +103,7 @@ export function AgentForm({
                 <option value="en">English</option>
                 <option value="en-IN">Indian English</option>
                 <option value="hi">Hindi (needs a multilingual speech model)</option>
+                <option value="auto">Auto: English or Hindi, follows the caller</option>
               </NativeSelect>
             </Field>
             <Field label="Description" htmlFor="description" className="md:col-span-2" hint="For your team; the agent does not see this.">
@@ -241,7 +242,7 @@ function ObjectivesEditor({ form }: { form: UseFormReturn<AgentValues> }) {
 function ModelAndVoice({ form }: { form: UseFormReturn<AgentValues> }) {
   const models = useQuery({
     queryKey: ["models"],
-    queryFn: () => get<{ available: boolean; error?: string; models: ModelInfo[]; default: string }>("/api/system/models"),
+    queryFn: () => get<{ available: boolean; error?: string; models: ModelInfo[]; default: string; allow_remote: boolean }>("/api/system/models"),
   });
   const provider = form.watch("tts.provider");
   const voices = useQuery({
@@ -293,11 +294,13 @@ function ModelAndVoice({ form }: { form: UseFormReturn<AgentValues> }) {
           <NativeSelect id="model" {...form.register("llm.model")}>
             <option value="">Choose a model…</option>
             {models.data?.models.map((m) => (
-              <option key={m.name} value={m.name} disabled={!m.is_local}>
+              <option key={m.name} value={m.name} disabled={!m.is_local && !models.data?.allow_remote}>
                 {m.name}
                 {m.parameter_size ? ` (${m.parameter_size}${m.quantization ? `, ${m.quantization}` : ""})` : ""}
                 {m.size_bytes && m.is_local ? `, ${formatBytes(m.size_bytes)}` : ""}
-                {!m.is_local ? " (remote, not allowed)" : !m.fits_memory ? " (large for this Mac)" : ""}
+                {!m.is_local
+                  ? models.data?.allow_remote ? ` (cloud: ${m.remote_host ?? "remote"}, conversations leave this Mac)` : " (remote, not allowed)"
+                  : !m.fits_memory ? " (large for this Mac)" : ""}
               </option>
             ))}
           </NativeSelect>

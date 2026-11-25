@@ -17,6 +17,7 @@ from typing import Any, Literal
 from engine.conversation.prompt import (
     AgentPersona,
     build_system_prompt,
+    is_hindi,
     knowledge_context,
 )
 from engine.conversation.text import SentenceSplitter, speechify
@@ -123,11 +124,13 @@ class ConversationSession:
             self.end_requested = True
             self.end_reason = reason
 
-    def _messages(self, extra_system: str = "") -> list[ChatMessage]:
+    def _messages(self, extra_system: str = "", last_system: str = "") -> list[ChatMessage]:
         msgs = [ChatMessage("system", self._system_prompt)]
         if extra_system:
             msgs.append(ChatMessage("system", extra_system))
         msgs.extend(self.history[-self.config.history_limit :])
+        if last_system:  # after the history, where small models actually follow it
+            msgs.append(ChatMessage("system", last_system))
         return msgs
 
     async def _retrieve(self, query: str) -> list[KnowledgeSnippet]:
@@ -146,6 +149,12 @@ class ConversationSession:
             self.add_user(user_text)
         snippets = await self._retrieve(user_text) if user_text else []
         extra = knowledge_context(snippets)
+        lang_rule = ""
+        if user_text and self.config.persona.language == "auto":  # small models ignore the system-prompt rule alone
+            lang_rule = ("The caller's last message is in Hindi. Reply only in Hindi (Devanagari script)."
+                         if is_hindi(user_text) else
+                         "The caller's last message is in Latin letters. Reply in English, or in Hinglish (Hindi "
+                         "and English mixed, Latin letters) if that is how the caller speaks.")  # fmt: skip
         tools = self.tools.specs_for(self.config.tools_allowed) if self.tool_ctx else None
         full = ""
         metrics: dict[str, Any] = {"knowledge_hits": len(snippets)}
@@ -153,7 +162,7 @@ class ConversationSession:
         for _round in range(3):  # at most 2 tool rounds, then a final spoken answer
             splitter = SentenceSplitter()
             calls: list[ToolCall] = []
-            async for chunk in self.llm.stream_chat(self._messages(extra), self.config.llm_options, tools):
+            async for chunk in self.llm.stream_chat(self._messages(extra, lang_rule), self.config.llm_options, tools):
                 if "ttft_ms" in chunk.metrics and "llm_ttft_ms" not in metrics:
                     metrics["llm_ttft_ms"] = chunk.metrics["ttft_ms"]
                 if chunk.done:

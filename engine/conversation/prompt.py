@@ -10,6 +10,11 @@ from engine.conversation.tools import KnowledgeSnippet
 LANGUAGE_NAMES = {"en": "English", "hi": "Hindi", "en-IN": "Indian English", "hinglish": "Hinglish"}
 
 
+def is_hindi(text: str) -> bool:
+    # shortcut: Devanagari script = Hindi; romanised Hindi ("kya aap...") counts as English
+    return any("ऀ" <= ch <= "ॿ" for ch in text)
+
+
 @dataclass
 class AgentPersona:
     name: str
@@ -58,7 +63,12 @@ def build_system_prompt(p: AgentPersona, now: datetime | None = None) -> str:
         parts.append(f"Business information (authoritative):\n{p.business_knowledge.strip()[:6000]}")
     if p.contact_name:
         parts.append(f"You are speaking with {p.contact_name}.")
-    parts.append(f"Respond in {lang}. Current date and time: {now.strftime('%A %d %B %Y, %H:%M')}.")
+    if p.language == "auto":
+        lang_rule = ("Reply in the language the caller used in their last message: English, Hindi written in "
+                     "Devanagari script, or Hinglish in Latin letters. Switch whenever they switch.")  # fmt: skip
+    else:
+        lang_rule = f"Respond in {lang}."
+    parts.append(f"{lang_rule} Current date and time: {now.strftime('%A %d %B %Y, %H:%M')}.")
     parts.append(GUARDRAILS)
     return "\n\n".join(parts)
 

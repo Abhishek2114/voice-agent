@@ -19,7 +19,7 @@ from app.calls.service import run_simulated_call
 from app.contacts.csv_safety import escape_cell
 from app.core.audit import audit
 from app.core.config import get_settings
-from app.core.errors import bad_request, not_found
+from app.core.errors import bad_request, conflict, not_found
 from app.database.models import (
     Agent,
     Call,
@@ -196,6 +196,9 @@ async def delete_call(call_id: str, request: Request, ctx: WorkspaceContext = De
     c = await db.get(Call, call_id)
     if c is None or c.workspace_id != ctx.id:
         raise not_found("Call")
+    if c.status in ("queued", "dialing", "ringing", "connecting", "in_progress"):
+        # the running call would keep writing transcripts/callbacks against a deleted row
+        raise conflict("This call is still in progress. Delete it after it ends.", "call_in_progress")
     rec = (await db.execute(select(Recording).where(Recording.call_id == c.id))).scalar_one_or_none()
     if rec:
         settings = get_settings()

@@ -210,3 +210,22 @@ async def test_interrupted_greeting_still_reaches_transcript():
     await h.wait_for("interrupted")
     await h.wait_for("transcript", lambda d: d["role"] == "assistant" and d.get("interrupted"))
     await h.close()
+
+
+async def test_auto_language_follows_caller_in_reply_and_voice():
+    from engine.conversation.prompt import build_system_prompt
+
+    pipe = Harness(ScriptedLLM(lambda m: ""), FakeSTT([]), hindi_voice="hi_voice").pipe
+    assert pipe._voice_for("हमारे पास होस्टिंग प्लान हैं।").voice == "hi_voice"
+    assert pipe._voice_for("We offer hosting plans.").voice == "fake"
+    assert Harness(ScriptedLLM(lambda m: ""), FakeSTT([])).pipe._voice_for("नमस्ते").voice == "fake"
+    assert "Switch whenever they switch" in build_system_prompt(AgentPersona(name="A", business_name="B", language="auto"))
+
+    seen: list[str] = []
+    llm = ScriptedLLM(lambda m: seen.append(" ".join(x.content for x in m if x.role == "system")) or "ok")
+    cfg = SessionConfig(persona=AgentPersona(name="A", business_name="B", language="auto"), llm_options=LLMOptions(model="s"),
+                        greeting="")  # fmt: skip
+    session = ConversationSession(cfg, llm, default_registry())
+    await session.respond_text("क्या आप होस्टिंग देते हैं?")
+    await session.respond_text("Do you offer email?")
+    assert "Reply only in Hindi" in seen[0] and "Reply in English, or in Hinglish" in seen[1]

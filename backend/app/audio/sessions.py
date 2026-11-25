@@ -123,7 +123,8 @@ class VoiceSessionManager:
                 if not pipeline.ended.is_set():
                     await pipeline.stop(reason)
 
-            transport = WebRTCTransport(sink, recorder=recorder, on_control=on_control, on_closed=on_closed)
+            transport = WebRTCTransport(sink, recorder=recorder, on_control=on_control, on_closed=on_closed,
+                                        stun_url=get_settings().stun_url)  # fmt: skip
             transport_ref["t"] = transport
             transport.set_audio_handler(pipeline.push_audio)
             try:
