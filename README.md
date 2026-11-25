@@ -6,8 +6,6 @@ Build, test, and run local AI voice agents on Apple Silicon. Voice-agent combine
 
 > **Privacy-first:** the default setup keeps voice, transcripts, recordings, and configuration on your machine. Remote provider access is disabled unless you explicitly enable it.
 
-![Overview](docs/screenshots/overview-light.png)
-
 ## Features
 
 - **Live browser conversations:** bidirectional WebRTC audio with microphone input, agent speech output, live transcripts, mute controls, interruption/barge-in, and manual interruption.
