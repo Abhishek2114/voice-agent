@@ -277,3 +277,28 @@ async def test_rtp_ignores_packets_from_other_peers():
     media._on_datagram(RtpPacket(118, 3, 0, 999, pcm_to_payload(pcm)).encode(), ("10.0.0.2", 4000))  # other ssrc
     media._on_datagram(good, ("10.0.0.2", 4000))
     assert len(got) == 2 and media.packets_dropped == 2 and media.payload_type == 118
+
+
+def test_claude_history_conversion():
+    from engine.providers.llm.base import ChatMessage, ToolCall
+    from engine.providers.llm.claude import ClaudeProvider
+
+    p = ClaudeProvider(client=object())  # type: ignore[arg-type]
+    raw = [{"type": "thinking", "thinking": "", "signature": "s"}, {"type": "tool_use", "id": "t2", "name": "lookup", "input": {}}]
+    p._raw["t2"] = raw
+    out = p._convert([
+        ChatMessage("assistant", "Hello!"),
+        ChatMessage("user", "Book me"),
+        ChatMessage("assistant", "", tool_calls=[ToolCall("save", {"a": 1})]),  # earlier turn, no id (e.g. from Ollama)
+        ChatMessage("tool", "saved", tool_name="save"),
+        ChatMessage("assistant", "Done."),
+        ChatMessage("user", "Price?"),
+        ChatMessage("assistant", "", tool_calls=[ToolCall("lookup", {}, "t2")]),  # current tool loop
+        ChatMessage("tool", "100", tool_name="lookup"),
+    ])
+    assert out[0] == {"role": "user", "content": "(The call has connected.)"}
+    old_call = out[3]["content"][0]
+    assert old_call["type"] == "tool_use" and out[4]["content"][0]["tool_use_id"] == old_call["id"]
+    assert out[-2] == {"role": "assistant", "content": raw}  # replayed unchanged, thinking included
+    assert out[-1]["content"][0] == {"type": "tool_result", "tool_use_id": "t2", "content": "100"}
+    assert p._convert([ChatMessage("user", "hi"), ChatMessage("assistant", "Hello")])[-1]["role"] == "user"

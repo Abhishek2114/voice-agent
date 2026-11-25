@@ -21,6 +21,8 @@ const csp = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // inlined at build time: rebuild after changing VA_STUN_URL
+  env: { VA_STUN_URL: process.env.VA_STUN_URL ?? "" },
   devIndicators: false,
   // separate build dir for the isolated E2E server so it never clobbers the production build
   distDir: process.env.NEXT_DIST_DIR ?? ".next",

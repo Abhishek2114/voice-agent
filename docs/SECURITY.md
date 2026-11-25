@@ -57,7 +57,7 @@ voice-agent is a **local-first, single-machine** application. All services run o
 
 * `scripts/start.sh` binds the API (8000), dashboard (3000), whisper-server (8178) and Piper (5005) to `127.0.0.1`. If it has to start Ollama itself, it does so with `OLLAMA_HOST=127.0.0.1:11434`. `scripts/health-check.sh` warns if Ollama listens on a non-loopback address.
 * The browser reaches the API through the dashboard's same-origin `/api/*` rewrite, so session cookies stay first-party.
-* WebRTC uses **no STUN or TURN servers** (`iceServers: []` on both sides). No media or metadata is sent to third-party ICE servers.
+* WebRTC uses **no STUN or TURN servers** by default (`iceServers: []` on both sides). No media or metadata is sent to third-party ICE servers. Setting `VA_STUN_URL` (and rebuilding the dashboard) lets callers outside your network connect; both sides then reveal their public IP address to that STUN server. Media still flows directly, not through it.
 * Exposing the dashboard beyond localhost, for example for customer links, is a deliberate operator action that needs your own HTTPS reverse proxy. See the [hardening checklist](#hardening-checklist-for-operators).
 
 ## Authentication and sessions

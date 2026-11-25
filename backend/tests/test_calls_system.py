@@ -200,6 +200,21 @@ async def test_backup_create_verify_restore(owner, tmp_path):
     assert (await c.get("/api/system/backups/..%2F..%2Fetc%2Fpasswd")).status_code == 404
 
 
+async def test_call_in_progress_cannot_be_deleted(owner):
+    c, ws = owner["client"], owner["ws"]
+    a = await make_agent(c, ws)
+    async with sessionmaker()() as db:
+        call = await create_call(db, ws_id=ws, agent=await db.get(Agent, a["id"]), mode="SIMULATION",
+                                 direction="outbound", channel="simulation", status="dialing")  # fmt: skip
+        await db.commit()
+    r = await c.delete(f"/api/workspaces/{ws}/calls/{call.id}")
+    assert r.status_code == 409 and r.json()["error"]["code"] == "call_in_progress"
+    async with sessionmaker()() as db:
+        (await db.get(type(call), call.id)).status = "completed"
+        await db.commit()
+    assert (await c.delete(f"/api/workspaces/{ws}/calls/{call.id}")).status_code == 200
+
+
 async def test_tool_host_simulation_never_writes_leads(owner):
     c, ws = owner["client"], owner["ws"]
     a = await make_agent(c, ws)

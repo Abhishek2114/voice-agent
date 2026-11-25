@@ -9,11 +9,14 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
+from collections.abc import AsyncIterator
 from typing import Any
 
 from engine.audio.vad import VAD, create_vad
 from engine.providers.base import ProviderHealth
-from engine.providers.llm.base import LLMOptions, LLMProvider
+from engine.providers.llm.base import ChatMessage, LLMChunk, LLMError, LLMOptions, LLMProvider, ModelInfo
+from engine.providers.llm.claude import ClaudeProvider
 from engine.providers.llm.ollama import OllamaProvider
 from engine.providers.stt.base import STTProvider
 from engine.providers.stt.whisper_cpp import WhisperCliSTT, WhisperServerSTT
@@ -40,6 +43,39 @@ DEFAULT_AUDIO = {
     "vad": "silero", "vad_threshold": 0.5, "end_silence_ms": 700, "min_speech_ms": 160,
     "barge_in": True, "barge_in_min_ms": 300, "pre_roll_ms": 300,
 }  # fmt: skip
+
+
+class _ModelRouter:
+    """Sends ``claude-*`` models to Anthropic and everything else to Ollama."""
+
+    name = "ollama"
+
+    def __init__(self, local: OllamaProvider, claude: ClaudeProvider) -> None:
+        self.local, self.claude = local, claude
+
+    def _pick(self, model: str) -> LLMProvider:
+        return self.claude if model.startswith("claude-") else self.local
+
+    async def health(self) -> ProviderHealth:
+        return await self.local.health()
+
+    async def list_models(self, force: bool = False) -> list[ModelInfo]:
+        try:
+            local = await self.local.list_models(force)
+        except LLMError:  # Claude agents keep working while Ollama is down
+            local = []
+        return [*local, *await self.claude.list_models()]
+
+    def stream_chat(self, messages: list[ChatMessage], options: LLMOptions,
+                    tools: list[dict[str, Any]] | None = None) -> AsyncIterator[LLMChunk]:  # fmt: skip
+        return self._pick(options.model).stream_chat(messages, options, tools)
+
+    async def chat_json(self, messages: list[ChatMessage], options: LLMOptions,
+                        schema: dict[str, Any]) -> dict[str, Any]:  # fmt: skip
+        return await self._pick(options.model).chat_json(messages, options, schema)
+
+    async def warm_up(self, model: str, keep_alive: str = "15m") -> float:
+        return 0.0 if model.startswith("claude-") else await self.local.warm_up(model, keep_alive)
 
 
 class ProviderHub:
@@ -86,6 +122,9 @@ class ProviderHub:
             c = self.cfg("llm")
             self._llm = OllamaProvider(c.get("base_url") or self.settings.ollama_url,
                                        allow_remote_models=self.settings.allow_remote_llm_models)  # fmt: skip
+            # Claude is opt-in twice: remote models allowed AND an Anthropic key present
+            if self.settings.allow_remote_llm_models and os.environ.get("ANTHROPIC_API_KEY"):
+                self._llm = _ModelRouter(self._llm, ClaudeProvider())
         return self._llm
 
     def default_model(self) -> str:

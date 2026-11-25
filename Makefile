@@ -42,8 +42,8 @@ health: ## Check that every service is up
 backup: ## Create a backup of the data directory
 	./scripts/backup.sh
 
-build: ## Production build of the dashboard
-	cd $(DASHBOARD) && npm run build
+build: ## Production build of the dashboard (reads .env, e.g. VA_STUN_URL)
+	source scripts/lib.sh && cd $(DASHBOARD) && npm run build
 
 # --- tests -------------------------------------------------------------------
 

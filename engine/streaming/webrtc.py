@@ -6,8 +6,8 @@
   real time and aiortc encodes them as Opus.
 * Control/events: a data channel named ``events`` (created by the browser) carries JSON
   messages in both directions.
-* ICE: no STUN/TURN servers are configured — media stays on the local machine/LAN,
-  and nothing is sent to third-party ICE servers.
+* ICE: no STUN/TURN servers by default — media stays on the local machine/LAN, and
+  nothing is sent to third-party ICE servers. An optional STUN URL enables remote callers.
 """
 
 from __future__ import annotations
@@ -22,7 +22,12 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 import av
-from aiortc import RTCConfiguration, RTCPeerConnection, RTCSessionDescription
+from aiortc import (
+    RTCConfiguration,
+    RTCIceServer,
+    RTCPeerConnection,
+    RTCSessionDescription,
+)
 from aiortc.mediastreams import MediaStreamError, MediaStreamTrack
 
 from engine.audio.recorder import CallRecorder
@@ -90,12 +95,13 @@ class WebRTCTransport:
         recorder: CallRecorder | None = None,
         on_control: ControlHandler | None = None,
         on_closed: Callable[[str], Awaitable[None]] | None = None,
+        stun_url: str = "",
     ) -> None:
         self.sink = sink
         self.recorder = recorder
         self.on_control = on_control
         self.on_closed = on_closed
-        self.pc = RTCPeerConnection(RTCConfiguration(iceServers=[]))
+        self.pc = RTCPeerConnection(RTCConfiguration(iceServers=[RTCIceServer(urls=stun_url)] if stun_url else []))
         self.out_track = SinkAudioTrack(sink, recorder)
         self.channel: Any = None
         self._pending: list[str] = []

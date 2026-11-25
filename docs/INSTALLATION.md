@@ -173,6 +173,8 @@ Settings are environment variables prefixed `VA_`, read from `.env` at the repos
 | `VA_MAX_VOICE_SESSIONS` | `2` | Concurrent browser voice sessions. |
 | `VA_TELEPHONY_CONCURRENCY` | `4` | Concurrent campaign calls in the scheduler. |
 | `VA_PUBLIC_CALLS_ENABLED` | `false` | Allow customer "talk to us" links (each agent must also enable its own). |
+| `VA_HINDI_TTS_VOICE` | unset | Piper voice for Hindi sentences, e.g. `hi_IN-priyamvada-medium` (download its `.onnx` and `.onnx.json` into `data/models/piper`). Used by agents whose Language is **Auto**, which also needs a multilingual `VA_WHISPER_MODEL` such as `ggml-small-q5_1.bin`. Hindi turns are slower (several seconds) than English ones. |
+| `VA_STUN_URL` | unset | STUN server for voice calls from outside your network, e.g. `stun:stun.cloudflare.com:3478`. Rebuild the dashboard (`make build`) after changing it. See [SECURITY.md](SECURITY.md#network-exposure). |
 | `VA_REAL_TELEPHONY_ENABLED` | `false` | Allow real PSTN calling (see [TELEPHONY.md](TELEPHONY.md) and [COMPLIANCE.md](COMPLIANCE.md)). |
 | `VA_ALLOW_REMOTE_PROVIDER_HOSTS` | `false` | Allow provider URLs that resolve to public addresses. |
 | `VA_BACKUP_PASSPHRASE` | unset | If set, `scripts/backup.sh` encrypts archives (AES-256-GCM). |

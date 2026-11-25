@@ -36,6 +36,11 @@ class Settings(BaseSettings):
     allow_remote_provider_hosts: bool = False
     # Public "talk to us" links: off unless enabled here AND per agent.
     public_calls_enabled: bool = False
+    # WebRTC STUN server (e.g. stun:stun.cloudflare.com:3478). Empty keeps media LAN-only and
+    # contacts no third party; set it so browsers outside this network can connect.
+    stun_url: str = ""
+    # Piper voice used for Hindi (Devanagari) sentences, e.g. "hi_IN-priyamvada-medium". Empty disables switching.
+    hindi_tts_voice: str = ""
 
     # AI providers (local only)
     ollama_url: str = "http://127.0.0.1:11434"

@@ -14,6 +14,7 @@ from engine.providers.tts.base import VoiceSettings
 
 from app.ai.hub import ProviderHub
 from app.compliance.policy import policy_for
+from app.core.config import get_settings
 from app.database.models import Agent, Campaign, Contact, Workspace
 
 _AI_WORDS = re.compile(r"\b(ai|a\.i\.|artificial intelligence|virtual assistant|automated)\b", re.IGNORECASE)
@@ -97,7 +98,9 @@ def pipeline_config(agent: Agent, hub: ProviderHub) -> PipelineConfig:
         barge_in_min_ms=int(a["barge_in_min_ms"]),
         max_duration_s=float(agent.max_duration_seconds),
         silence_timeout_s=float(agent.silence_timeout_seconds),
-        language=str(stt.get("language") or agent.language.split("-")[0] or hub.stt_language()),
+        # the agent's language wins: the dashboard always saves a hidden stt.language of "en"
+        language=str(agent.language.split("-")[0] or stt.get("language") or hub.stt_language()),
+        hindi_voice=get_settings().hindi_tts_voice if voice_settings(agent, hub)[0] == "piper" else "",
     )  # fmt: skip
 
 

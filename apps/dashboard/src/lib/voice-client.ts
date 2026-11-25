@@ -97,7 +97,8 @@ export class VoiceClient {
     this.ctx = new AudioContext();
     this.micMeter = new Meter(this.ctx, this.mic);
 
-    const pc = new RTCPeerConnection({ iceServers: [] });
+    const stun = process.env.VA_STUN_URL;
+    const pc = new RTCPeerConnection({ iceServers: stun ? [{ urls: stun }] : [] });
     this.pc = pc;
     const channel = pc.createDataChannel("events");
     this.channel = channel;

@@ -22,12 +22,13 @@ import inspect
 import logging
 import time
 from collections.abc import Awaitable, Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 import numpy as np
 
 from engine.audio.vad import SegmenterConfig, SegmentEventType, SpeechSegmenter
+from engine.conversation.prompt import is_hindi
 from engine.conversation.session import ConversationSession
 from engine.providers.base import ProviderError
 from engine.providers.stt.base import STTProvider
@@ -46,7 +47,8 @@ class PipelineConfig:
     barge_in_min_ms: int = 300
     max_duration_s: float = 600.0
     silence_timeout_s: float = 20.0
-    language: str = "en"
+    language: str = "en"  # "auto" lets the speech model detect the caller's language per turn
+    hindi_voice: str = ""  # voice for Devanagari sentences, so replies are spoken in the caller's language
     watchdog_interval_s: float = 0.2
 
 
@@ -241,7 +243,7 @@ class VoicePipeline:
                 if sentence is None:
                     return
                 t0 = time.monotonic()
-                res = await self.tts.synthesize(sentence, self.voice)
+                res = await self.tts.synthesize(sentence, self._voice_for(sentence))
                 marker = self._next_marker()
                 self.sink.enqueue(res.pcm, res.sample_rate, marker)
                 spoken.append((marker, sentence))
@@ -308,7 +310,7 @@ class VoicePipeline:
                 self.ai_slot.release()
                 acquired = False
             with contextlib.suppress(ProviderError):
-                res = await self.tts.synthesize(fallback, self.voice)
+                res = await self.tts.synthesize(fallback, self._voice_for(fallback))
                 self.sink.enqueue(res.pcm, res.sample_rate, self._next_marker())
                 self.session.add_assistant(fallback, metrics={"fallback": "llm_error"})
                 await self._emit("transcript", {"role": "assistant", "text": fallback, "final": True})
@@ -322,10 +324,16 @@ class VoicePipeline:
             if acquired and self.ai_slot is not None:
                 self.ai_slot.release()
 
+    def _voice_for(self, text: str) -> VoiceSettings:
+        # shortcut: Hindi is the only second voice; add a language->voice map for more languages
+        if self.config.hindi_voice and is_hindi(text):
+            return replace(self.voice, voice=self.config.hindi_voice, speaker=None)
+        return self.voice
+
     async def _speak(self, text: str, *, then_stop: str | None = None) -> None:
         """Speak a fixed utterance (greeting, re-prompt, goodbye)."""
         try:
-            res = await self.tts.synthesize(text, self.voice)
+            res = await self.tts.synthesize(text, self._voice_for(text))
         except ProviderError as exc:
             await self._emit("error", {**exc.to_dict(), "stage": "tts", "recoverable": then_stop is None})
             self.session.add_assistant(text, metrics={"tts_failed": True})
